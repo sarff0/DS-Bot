@@ -15,7 +15,7 @@ import { hostText, t } from './i18n.js'
 import { clientErrors } from './diagnostics.js'
 import { showsDshRow } from './dsh-offer.js'
 import { quietly } from './diagnostics.js'
-import { frameLayout, dragColumn, RAIL_WIDTH, FALLBACK_SIDEBAR_WIDTH, userSidebarToggle, measuredLeftInset } from './frame-layout.js'
+import { frameLayout, dragColumn, RAIL_WIDTH, FALLBACK_SIDEBAR_WIDTH, userSidebarToggle, measuredLeftInset, watchSettledLayout } from './frame-layout.js'
 import { chatRoom, dshCollapsed } from './frame-watch.js'
 
 // -------------------------------------------------------------------------
@@ -593,13 +593,7 @@ export function TeamSidebar(props) {
     measure()
     const panel = document.querySelector('.bt-leftcol')
     if (!panel || (mode !== 'open' && mode !== 'rail')) return
-    const onSettle = (event) => { if (event.target === panel) measure() }
-    panel.addEventListener('animationend', onSettle)
-    panel.addEventListener('transitionend', onSettle)
-    return () => {
-      panel.removeEventListener('animationend', onSettle)
-      panel.removeEventListener('transitionend', onSettle)
-    }
+    return watchSettledLayout(panel, measure)
   }, [mode, pushed, frameSnap.collapsedWidth])
   useEffect(() => () => { if (typeof document !== 'undefined') chatRoom.setLeft(null) }, [])
 

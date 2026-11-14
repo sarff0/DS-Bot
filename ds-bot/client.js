@@ -15319,6 +15319,19 @@ var SIDEBAR_MAX = 420;
 var FALLBACK_SIDEBAR_WIDTH = 280;
 var RAIL_SNAP = (RAIL_WIDTH + SIDEBAR_MIN) / 2;
 var measuredLeftInset = (panelRight, columnLeft, currentInset = 0) => Math.max(0, currentInset + panelRight - columnLeft);
+function watchSettledLayout(panel, measure, schedule = setTimeout, cancel = clearTimeout) {
+  const timer = schedule(measure, 0);
+  const onSettle = (event) => {
+    if (event.target === panel) measure();
+  };
+  panel.addEventListener("animationend", onSettle);
+  panel.addEventListener("transitionend", onSettle);
+  return () => {
+    cancel(timer);
+    panel.removeEventListener("animationend", onSettle);
+    panel.removeEventListener("transitionend", onSettle);
+  };
+}
 function frameLayout({ viewport, sidebarWidth, pref, drawer = false, panel = null }) {
   const fits = pref === "open" && viewport >= sidebarWidth + MIN_CHAT;
   let left = pref === "hidden" ? "hidden" : fits ? "open" : drawer && pref === "open" ? "drawer" : "rail";
@@ -28899,15 +28912,7 @@ function TeamSidebar(props) {
     measure();
     const panel = document.querySelector(".bt-leftcol");
     if (!panel || mode !== "open" && mode !== "rail") return;
-    const onSettle = (event) => {
-      if (event.target === panel) measure();
-    };
-    panel.addEventListener("animationend", onSettle);
-    panel.addEventListener("transitionend", onSettle);
-    return () => {
-      panel.removeEventListener("animationend", onSettle);
-      panel.removeEventListener("transitionend", onSettle);
-    };
+    return watchSettledLayout(panel, measure);
   }, [mode, pushed, frameSnap.collapsedWidth]);
   (0, import_react35.useEffect)(() => () => {
     if (typeof document !== "undefined") chatRoom.setLeft(null);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   RAIL_WIDTH, RAIL_SNAP, SIDEBAR_MIN, SIDEBAR_MAX, MIN_CHAT, FALLBACK_SIDEBAR_WIDTH,
-  frameLayout, dragColumn, toggledPref, trackRoom, userSidebarToggle, readSidebar, writeSidebar, measuredLeftInset,
+  frameLayout, dragColumn, toggledPref, trackRoom, userSidebarToggle, readSidebar, writeSidebar, measuredLeftInset, watchSettledLayout,
 } from '../src/client/frame-layout.js'
 import { createSource } from '../src/client/sources.js'
 import { teamActions } from '../src/client/team-actions.js'
@@ -18,6 +18,28 @@ test('measured left inset adds only the overlap to the inset already applied', (
   assert.equal(measuredLeftInset(312, 108, 52), 256)
   assert.equal(measuredLeftInset(340, 400, 240), 180)
   assert.equal(measuredLeftInset(100, 400, 0), 0)
+})
+
+test('left column is remeasured after layout even when no animation event fires', () => {
+  const listeners = new Map()
+  const timers = new Map()
+  let nextTimer = 0
+  let measurements = 0
+  const panel = {
+    addEventListener: (name, fn) => listeners.set(name, fn),
+    removeEventListener: (name, fn) => { if (listeners.get(name) === fn) listeners.delete(name) },
+  }
+  const cleanup = watchSettledLayout(panel, () => { measurements += 1 }, (fn) => { timers.set(++nextTimer, fn); return nextTimer }, (id) => timers.delete(id))
+  assert.equal(timers.size, 1)
+  timers.get(nextTimer)()
+  assert.equal(measurements, 1)
+  listeners.get('transitionend')({ target: {} })
+  assert.equal(measurements, 1)
+  listeners.get('animationend')({ target: panel })
+  assert.equal(measurements, 2)
+  cleanup()
+  assert.equal(timers.size, 0)
+  assert.equal(listeners.size, 0)
 })
 
 test('a wide window keeps the open column and a shown panel', () => {

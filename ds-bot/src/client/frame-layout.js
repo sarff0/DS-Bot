@@ -24,6 +24,18 @@ export const RAIL_SNAP = (RAIL_WIDTH + SIDEBAR_MIN) / 2
 export const measuredLeftInset = (panelRight, columnLeft, currentInset = 0) =>
   Math.max(0, currentInset + panelRight - columnLeft)
 
+export function watchSettledLayout(panel, measure, schedule = setTimeout, cancel = clearTimeout) {
+  const timer = schedule(measure, 0)
+  const onSettle = (event) => { if (event.target === panel) measure() }
+  panel.addEventListener('animationend', onSettle)
+  panel.addEventListener('transitionend', onSettle)
+  return () => {
+    cancel(timer)
+    panel.removeEventListener('animationend', onSettle)
+    panel.removeEventListener('transitionend', onSettle)
+  }
+}
+
 /**
  * @param {{viewport: number, sidebarWidth: number,
  *   pref: 'open'|'rail'|'hidden', drawer?: boolean,
